@@ -7,4 +7,4 @@ points or straight up just use them I should share what they turned into
 I am not (as of yet) a SID composer so yes I just slap whatever tune has my ear at the time into these as I accept my place
 as a total amatuer to developing on this platform.
 
---CrazySpence
+@thecrazyspence on tiktok
