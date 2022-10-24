@@ -33,7 +33,6 @@
 360 :  if ct > 0 then ct = ct-1:else collision 1,5000
 370 :  lv = int((ps/50))
 410 loop until 1=0
-515 if ty>186 then return
 1000 rem draw level
 1005 scnclr
 1010 char 1,5,2,"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
