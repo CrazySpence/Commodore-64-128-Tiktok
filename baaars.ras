@@ -1,17 +1,17 @@
 program baars;
 @use "tables/luminosities"
 var
-	cols : array[256] of byte = buildtable("0"); // some random numbers
-	zp,cp: pointer;
-	i,j,k,time,curPos : byte;
+    cols : array[256] of byte = buildtable("0"); // some random numbers
+    zp,cp: pointer;
+    i,j,k,time,curPos : byte;
 
 
 procedure Bars();
 begin
-	//cutting this down to the exact area where the bars will be allows for upto 7 bars
-	asm("
-	ldx #62
-lp:
+    //cutting this down to the exact area where the bars will be allows for upto 7 bars
+    asm("
+        ldx #62
+    lp:
 	lda cols,x
 	cpx $D012
 	bne *-3
@@ -25,31 +25,31 @@ end;
 
 procedure DrawBar(pos:byte);
 begin
-	zp:=#cols + pos;
-	memcpy(#Luminosities::fromBlack,0,zp,32); // copy lumi table to the color table  
+    zp:=#cols + pos;
+    memcpy(#Luminosities::fromBlack,0,zp,32); // copy lumi table to the color table  
 end;
 
 
 procedure UpdateBars();
 begin
-	j:=time;
-	for k:=0 to 7 do
-	begin
-		DrawBar(sine[j]/2 + 58);
-		j+=16;
-	end;	
-	time+=3;
+    j:=time;
+    for k:=0 to 7 do
+    begin
+        DrawBar(sine[j]/2 + 58);
+	j+=16;
+    end;	
+    time+=3;
 end;
 
 
 interrupt Raster();
 begin
     startirq(1);
-	  //screen_bg_col := blue;
+    //screen_bg_col := blue;
     Bars();
-	  // Fill the bars to zero each frame 
-	  // Changed to fastfil, somehow fastfill even with the if blocks is fast enough to make atleast 4 bars work on NTSC whereas fill only allows for 1
-	  //screen_bg_col := green;
+    // Fill the bars to zero each frame 
+    // Changed to fastfil, somehow fastfill even with the if blocks is fast enough to make atleast 4 bars work on NTSC whereas fill only allows for 1
+    //screen_bg_col := green;
     cp:=#cols + 58;
     curPos := sine[time]/2 + 58; //the general position of the first bar used to judge the fastfill
 	
@@ -57,13 +57,13 @@ begin
         //fastfill from 127 down if curpos greater than 127
         //screen_bg_col := red;
         cp := #cols + 122;
-    	 fillfast(cp ,0,127);
+    	fillfast(cp ,0,127);
     end else begin
-		//fastfill the top half of the screen otherwise
-		//screen_bg_col := yellow;
-		fillfast(cp,0,curPos); //zeros
-	end;
-	//screen_bg_col := purple;
+        //fastfill the top half of the screen otherwise
+	//screen_bg_col := yellow;
+	fillfast(cp,0,curPos); //zeros
+    end;
+        //screen_bg_col := purple;
 	UpdateBars();
 	//screen_bg_col := black;
 	closeirq();
@@ -74,16 +74,16 @@ begin
     setbank(vic_bank0);
     //screen_fg_col := black;
     //screen_bg_col := black;
-	  SetTextMode();
-	  SetRegularColorMode();
+    SetTextMode();
+    SetRegularColorMode();
     ClearScreen(key_space,screen_char_loc);
-	  // Fill the upper screen color ram with black
+    // Fill the upper screen color ram with black
     clearscreen(black, screen_col_loc);
 end;
 	
 begin	
-	  InitScreen();
-	  disableciainterrupts();
-	  startrasterchain(Raster(),60,1);
-	  loop();
+    InitScreen();
+    disableciainterrupts();
+    startrasterchain(Raster(),60,1);
+    loop();
 end.
