@@ -14,14 +14,12 @@ var
     orig_vic         : byte;
     startC,colorP    : pointer; 
     zp,tp, p1,ep,time: pointer;
-	temp2            : array[256] of byte;
+    temp2            : array[256] of byte;
     //CrazySpence Bitmap
     // Exports flf image directly to binary with each build
     @export "mcmsmall.flf" "resources/images/mcm.bin" 0
-
-	image_color: IncBin("resources/images/mcm_color.bin", $5801);
-	image_data: IncBin("resources/images/mcm_data.bin", $6000);
-
+    image_color: IncBin("resources/images/mcm_color.bin", $5801);
+    image_data: IncBin("resources/images/mcm_data.bin", $6000);
 
     //scroller text vars
     scrollVal  : byte    = 0;
@@ -31,75 +29,69 @@ var
 					  "THANKS TO EVERYONE WHO HAS FOLLOWED SO FAR I LOOK FORWARD TO THE NEXT 100!!!!",
 					 " SPECIAL THANKS TO SHTUNNER AND ADAMANTHEACHASE MY MOST ACTIVE FOLLOWERS AND ALSO TRSE AND RETROPIXELS WHICH I USED TO MAKE THIS CRACKTRO                                            ");
    //Custom small Charset
-   // charset will be placed at $2000 in bank 1	
+   //charset will be placed at $2000 in bank 1	
    const charsetLocation: address = $2000;
    charsetSmall: IncBin("resources/charsets/charset.bin",charsetLocation);
 
-const maxTextSprites : byte = 8;
+    const maxTextSprites : byte = 8;
+    // Variables for holding sprite values
+    // x and y
+    textSprite_x:array[maxTextSprites] of byte;
+    textSprite_y:array[maxTextSprites] of byte;
+    // Current color
+    textSprite_col:array[maxTextSprites] of byte;
+    textSprite_status:array[maxTextSprites] of byte;
+    textSprite_t:array[maxTextSprites] of byte;
+    textSprite_cnt:byte=0;
+    ms_x: integer;
+    scrollerText : string=(" ONE HUNDRED FOLLOWERS ON TIKTOK        ",0);
+    colorsGreen : array [16] of byte = (  11,11,5,12,13,13,15,7,  7,15,13,13,12,5,11,11  );
 
-	// Variables for holding sprite values
-	// x and y
-	textSprite_x:array[maxTextSprites] of byte;
-	textSprite_y:array[maxTextSprites] of byte;
-	// Current color
-	textSprite_col:array[maxTextSprites] of byte;
-	textSprite_status:array[maxTextSprites] of byte;
-	textSprite_t:array[maxTextSprites] of byte;
-	textSprite_cnt:byte=0;
-	ms_x: integer;
-	
-	scrollerText : string=(" ONE HUNDRED FOLLOWERS ON TIKTOK        ",0);
+    // Position of large charset
+    @define charsetLoc $3000
+    charset : incbin("resources/charsets/charset_16x16.bin", @charsetLoc);
+    
+    // Position of generated chars
+    @define generatedSpritesLoc $2800
+    
+    // Sprite loc on vic bank
+    @define spriteScrollerWaviness 46
+    @define spriteScrollerYPos 49
+    @define spriteTextColor colorsGreen
 
-	colorsGreen : array [16] of byte = (  11,11,5,12,13,13,15,7,  7,15,13,13,12,5,11,11  );
-
-// Position of large charset
-@define charsetLoc $3000
-
-	charset : incbin("resources/charsets/charset_16x16.bin", @charsetLoc);
-
-// Position of generated chars
-@define generatedSpritesLoc $2800
-// Sprite loc on vic bank
-
-@define spriteScrollerWaviness 46
-
-@define spriteScrollerYPos 49
-
-@define spriteTextColor colorsGreen
-
-@startblock $9000 "My Code" //address $9000	
+    @startblock $9000 "My Code" //address $9000	
 
 //Scroller Procedures
 /*
-  The following method just copes the current contents of textPointer to screenmemory
+  The following method just copies the current contents of textPointer to screenmemory
 */
 
 procedure PrintText();
 begin
-	moveto(0,scrollerPos,hi(screen_char_loc));
-	memcpy(textPointer, 0, screenmemory, screen_width-2);
+    moveto(0,scrollerPos,hi(screen_char_loc));
+    memcpy(textPointer, 0, screenmemory, screen_width-2);
 end;
 
 /*
- 	The following method decreases the scroll value. If the value is zero, then
- 	the scroll value is reset to 7, the text pointer is increased and a new
- 	text is printed to the screen. 
+    The following method decreases the scroll value. If the value is zero, then
+    the scroll value is reset to 7, the text pointer is increased and a new
+    text is printed to the screen. 
 */
 procedure UpdateScrollAndText();
 begin
-	// Scroll has looped 8 pixels
-	if (scrollVal=0) then 
-	begin
-		// Reset scroll value
-		scrollVal:=7; 
-		// Increase text pointer
-		textPointer:=textPointer+1;
-		// Reset scroller text if string termination "0" is encountered
-		if (textPointer[39]=0) then textPointer:=#scrollerT;
-		// Print new string to the screen
-		PrintText();			
-	end
-	else dec(scrollVal);
+    // Scroll has looped 8 pixels
+    if (scrollVal=0) then 
+    begin
+        // Reset scroll value
+	scrollVal:=7; 
+	// Increase text pointer
+	textPointer:=textPointer+1;
+	// Reset scroller text if string termination "0" is encountered
+	if (textPointer[39]=0) then textPointer:=#scrollerT;
+	// Print new string to the screen
+	PrintText();			
+    end
+    else dec(scrollVal);
 end;
 
 procedure Renew16x16Sprites();
@@ -109,27 +101,27 @@ procedure InitColour();
 
 interrupt RasterMain();
 begin
-	StartIRQ(useKernal);
-	inc(time);
-	call(sidfile_1_play); //Play music
+    StartIRQ(useKernal);
+    inc(time);
+    call(sidfile_1_play); //Play music
     InitColour();	
     
-	scrollx(0);
-	waitforraster(98);
+    scrollx(0);
+    waitforraster(98);
    
     //Switch to bitmap mode to display part of the bitmap
     vic_data_loc:=$18;
-	setbank(vic_bank1);
-   	setbitmapmode();
-   	setmulticolormode();
-   	
-	//Update scroller
-	//screen_fg_col :=white;
-	UpdateScrollAndText();
-	waitforraster(228);
-	vic_data_loc:=orig_vic;
-	setbank(vic_bank0);
-	SetCharsetLocation(charsetLocation); //Must be pointed to every time you switch back otherwise you get the default charset
+    setbank(vic_bank1);
+    setbitmapmode();
+    setmulticolormode();
+    
+    //Update scroller
+    //screen_fg_col :=white;
+    UpdateScrollAndText();
+    waitforraster(228);
+    vic_data_loc:=orig_vic;
+    setbank(vic_bank0);
+    SetCharsetLocation(charsetLocation); //Must be pointed to every time you switch back otherwise you get the default charset
     SetTextMode();
     setregularcolormode();
     HideBorderx(1);
@@ -137,9 +129,9 @@ begin
     
     //Do Sprite jobs
     Renew16x16Sprites();
-	Maintain16x16Sprites();
-       
-   	closeirq();
+    Maintain16x16Sprites();
+    
+    closeirq();
 end;
 
 /* Be right back sprite scroller */
@@ -147,67 +139,62 @@ end;
 
 procedure GenerateSprites();
 begin
-	// Place at p1
-	// Org at zp
-	tp:=zp;
-	// Let tp point to the "next" line in character data (8 bytes *40 chars = 320 )
-	tp:=tp+320; 
-	// Loop through all 26 characters A-Z
-	for k:=0 to 26 do begin 
-		fill(p1, 0, 64); // Clear sprite data  
-
-		j:=0;
-		// There are 8x4 = 32 bytes of data that we use (the rest of the sprite is unused)
-		for i:=0 to 8 do begin
-			p1[j]:=zp[i]; 
-			p1[j+1]:=zp[i+8];
-			p1[j+24]:=tp[i];
-			p1[j+25]:=tp[i+8];
-			j:=j+3;
-		end;
-		// Advance sprite pointer
-		p1:=p1+64;
-		// Advance pointers to font data
-		zp:=zp+16;
-		tp:=tp+16;
-		// at character 15, set new font positions
-		if (k=15) then begin
-			zp:=zp+384;
-			tp:=tp+384;//64+160+160 down
-		end;
-		
+    // Place at p1
+    // Org at zp
+    tp:=zp;
+    // Let tp point to the "next" line in character data (8 bytes *40 chars = 320 )
+    tp:=tp+320; 
+    // Loop through all 26 characters A-Z
+    for k:=0 to 26 do begin 
+        fill(p1, 0, 64); // Clear sprite data  
+	j:=0;
+	// There are 8x4 = 32 bytes of data that we use (the rest of the sprite is unused)
+	for i:=0 to 8 do begin
+	    p1[j]:=zp[i]; 
+	    p1[j+1]:=zp[i+8];
+	    p1[j+24]:=tp[i];
+	    p1[j+25]:=tp[i+8];
+	    j:=j+3;
 	end;
+	// Advance sprite pointer
+	p1:=p1+64;
+	// Advance pointers to font data
+	zp:=zp+16;
+	tp:=tp+16;
+	// at character 15, set new font positions
+	if (k=15) then begin
+	    zp:=zp+384;
+	    tp:=tp+384;//64+160+160 down
+	end;
+    end;
 end;
 
 // Maintains the sprites : moving them, setting y pos, color,turns off
 procedure Maintain16x16Sprites();
 begin
-	col:=0;
-	for i:=0 to maxTextSprites do 
-	begin
-		if (textSprite_status[i]=1) then 
-		begin
-			textSprite_x[i]:=textSprite_x[i] -1;
-			k:=textSprite_t[i];
-			textSprite_y[i]:=@spriteScrollerYPos + temp2[k];
-			ms_x:=textSprite_x[i]*2;
-			spritepos(ms_x, textSprite_y[i], i);
-			textSprite_t[i]:=textSprite_t[i]+3;
-		//	if (time&1=1) then 
-				inc(textSprite_col[i]);
-//			waitnoraster(1);
-			k:=textSprite_col[i]&15;
-			sprite_color[i]:= @spriteTextColor[k];
-
-//			poke(SPRITE_COLOR,i, fadeGreen[k]);
-			if (textSprite_x[i]>250) then begin
-				togglebit(sprite_bitmask,i,0);
-				textSprite_status[i]:=0;
-			end;
-		end;
+    col:=0;
+    for i:=0 to maxTextSprites do 
+    begin
+        if (textSprite_status[i]=1) then 
+        begin
+	    textSprite_x[i]:=textSprite_x[i] -1;
+	    k:=textSprite_t[i];
+	    textSprite_y[i]:=@spriteScrollerYPos + temp2[k];
+	    ms_x:=textSprite_x[i]*2;
+	    spritepos(ms_x, textSprite_y[i], i);
+	    textSprite_t[i]:=textSprite_t[i]+3;
+            //if (time&1=1) then 
+	    inc(textSprite_col[i]);
+//	    waitnoraster(1);
+            k:=textSprite_col[i]&15;
+	    sprite_color[i]:= @spriteTextColor[k];
+//          poke(SPRITE_COLOR,i, fadeGreen[k]);
+            if (textSprite_x[i]>250) then begin
+	        togglebit(sprite_bitmask,i,0);
+		textSprite_status[i]:=0;
+            end;
 	end;
-	
-
+    end;
 end;
 
 // Renews a new sprite (from text), called whenever a sprite leaves the screen and a
@@ -215,35 +202,33 @@ end;
 
 procedure Renew16x16Sprites();
 begin
-	inc(textSprite_cnt);
-	if (textSprite_cnt<24) then return();
-	textSprite_cnt:=0;
-
-	k:=ep[0];
-	if (k=key_space) then  // skip on $20
-	begin
+    inc(textSprite_cnt);
+    if (textSprite_cnt<24) then return();
+    textSprite_cnt:=0;
+    
+    k:=ep[0];
+    if (k=key_space) then  // skip on $20
+    begin
+        ep:=ep+1;
+	if (ep[0]=0) then ep:=#scrollerText;
+	return();
+    end;
+    if (k>64) then begin
+        k:=k-64-1;
+	j:=255;
+	// Find a slot for the sprite
+	for i:=0 to maxTextSprites do 
+	    if textSprite_status[i]=0 then j:=i;
+	    if (j<>255) then begin
+	        textSprite_x[j]:=176;
+		textSprite_status[j]:=1;
+		togglebit(sprite_bitmask, j, 1);
+		textSprite_col[j]:=0;
+		setspriteloc(j, @generatedSpritesLoc/64 +k, 0);
+		textSprite_t[j]:=time;
 		ep:=ep+1;
-		if (ep[0]=0) then ep:=#scrollerText;
-		return();
-	end;
-	if (k>64) then begin
-		k:=k-64-1;
-		j:=255;
-		// Find a slot for the sprite
-		for i:=0 to maxTextSprites do 
-			if textSprite_status[i]=0 then j:=i;
-		
-		if (j<>255) then begin
-			textSprite_x[j]:=176;
-			textSprite_status[j]:=1;
-			togglebit(sprite_bitmask, j, 1);
-			textSprite_col[j]:=0;
-			setspriteloc(j, @generatedSpritesLoc/64 +k, 0);
-			textSprite_t[j]:=time;
-			ep:=ep+1;
-		end;
-
-	end;
+            end;
+    end;
 end;
 
 
@@ -251,59 +236,59 @@ end;
 // Initializes sprites and generates sprite data
 procedure Init16x16Sprites();
 begin
-	zp:=@charsetLoc;
-	p1:=@generatedSpritesLoc;
-	GenerateSprites();
-
-	sprite_bitmask:=$00;
-	sprite_stretch_X:=$FF;
-	sprite_stretch_Y:=$FF;
-
-	fill(#textSprite_status,0,maxTextSprites);
-	// Set up sine function
-	for i:=0 to 0 do
-		temp2[i]:=sine[i]/@spriteScrollerWaviness;
+    zp:=@charsetLoc;
+    p1:=@generatedSpritesLoc;
+    GenerateSprites();
+    
+    sprite_bitmask:=$00;
+    sprite_stretch_X:=$FF;
+    sprite_stretch_Y:=$FF;
+    
+    fill(#textSprite_status,0,maxTextSprites);
+    // Set up sine function
+    for i:=0 to 0 do
+    temp2[i]:=sine[i]/@spriteScrollerWaviness;
 
 end;
 
 /*
-	Initializes the screen etc
+    Initializes the screen etc
 */
 
 procedure InitScreen();
 begin
     orig_vic := vic_data_loc;
     startC   := #screen_col_loc; 
-	startC   := startC + screen_width * 22;
+    startC   := startC + screen_width * 22;
     setbank(vic_bank1);
-	SetTextMode();
-	setmulticolormode();
+    SetTextMode();
+    setmulticolormode();
     ClearScreen(key_space,screen_char_loc);
-	// Fill the upper screen color ram with black
+    // Fill the upper screen color ram with black
     clearscreen(black, screen_col_loc);
     setbank(vic_bank0);
-	SetTextMode();
-	setregularcolormode();
+    SetTextMode();
+    setregularcolormode();
     ClearScreen(key_space,screen_char_loc);
-	// Fill the upper screen color ram with black
+    // Fill the upper screen color ram with black
     clearscreen(black, screen_col_loc);
     //SetCharsetLocation($2000); //load charset  
 end;
 
 procedure InitBitmap();
 begin
-	// Set data pointer to $6000
-	vic_data_loc:=$18;
+    // Set data pointer to $6000
+    vic_data_loc:=$18;
     setbank(vic_bank1);
-	// Copy image color data from $5000 to $4400 (on bank 1) and $D800 
-	copyimagecolordata(#image_color,1);
+    // Copy image color data from $5000 to $4400 (on bank 1) and $D800 
+    copyimagecolordata(#image_color,1);
 end;
 
 procedure InitColour();
 begin
     //Allocate the fade on the scroller
-	colorP  := startC; 
-	fill(colorP,black,40);
+    colorP  := startC; 
+    fill(colorP,black,40);
     colorP := colorP + 40;
     fill(colorP,dark_grey,4);
     colorP := colorP + 4;
@@ -319,10 +304,10 @@ end;
 begin
     //Init things
     Init16x16Sprites();
-	ep:=#scrollerText; 
-	InitSid(sidfile_1_init); //Init SID music 
-	InitScreen();
-	InitColour();
+    ep:=#scrollerText; 
+    InitSid(sidfile_1_init); //Init SID music 
+    InitScreen();
+    InitColour();
     InitBitmap();
     //Set up interrupt
     preventirq();
