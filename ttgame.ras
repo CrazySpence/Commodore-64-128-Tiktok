@@ -12,15 +12,15 @@ procedure InitVariables();
 */
 procedure CheckInput();
 begin
-	if(joyTimeout = 0) then begin
-      Joystick(1);
-	    if(joystickleft=1) then begin
-          if px > 69 then px := px - 1;
-      end;    
-      if(joystickright=1)	then begin 
-          if px < 275 then px := px + 1;
-      end;
-      joyTimeout := 2;
+    if(joyTimeout = 0) then begin
+    Joystick(1);
+    if(joystickleft=1) then begin
+        if px > 69 then px := px - 1;
+    end;    
+    if(joystickright=1)	then begin 
+        if px < 275 then px := px + 1;
+    end;
+    joyTimeout := 2;
     end else joyTimeout := joyTimeout - 1;
 end;
 
@@ -29,21 +29,21 @@ end;
 */
 procedure CheckBounce();
 begin
-	  /* interesting issue arose where the math wasn't working like it did in BASIC 7
-	   If I tried to do a negative number with integer it went haywire
-	   If I use byte then obviously I run out of allocation on the X axis
-	   So I hacked this together instead and it seems to work
-	   
-	   The on/off of xSpeed (and y) just indicates whether to add from x/y or minus
-	  */
-	
-	  if level > 2 then jitter := Random() & 1; //mess with the angle a bit
+    /* interesting issue arose where the math wasn't working like it did in BASIC 7
+     If I tried to do a negative number with integer it went haywire
+     If I use byte then obviously I run out of allocation on the X axis
+     So I hacked this together instead and it seems to work
+     
+     The on/off of xSpeed (and y) just indicates whether to add from x/y or minus
+    */
+    
+    if level > 2 then jitter := Random() & 1; //mess with the angle a bit
     if tx <= 69  then xSpeed := 1;
-	  if tx >= 275 then xSpeed := 0;
-	  if ty <= 70  then ySpeed := 1;
-	  if ty >= 190 then gameOver := 1; //Oops you Missed!
-	
-	  if xSpeed = 0 then tx := tx - speed - jitter - level
+    if tx >= 275 then xSpeed := 0;
+    if ty <= 70  then ySpeed := 1;
+    if ty >= 190 then gameOver := 1; //Oops you Missed!
+    
+    if xSpeed = 0 then tx := tx - speed - jitter - level
     else tx := tx + speed + jitter + level;
     if ySpeed = 0 then ty := ty - speed - level
     else ty := ty + speed + level;
@@ -54,7 +54,7 @@ end;
 */
 procedure CheckCollision();
 begin
-	  //Grab TT and Player X difference
+    //Grab TT and Player X difference
     i := abs(tx - px);
     //Grab TT and Player Y difference
     k := abs(ty - py);
@@ -63,13 +63,13 @@ begin
     k := k/2 + i/2;
 
     if k < 10 then begin
-	      //Updste score, start Collision Timeout Print score
-    	  playerScore := playerScore + 10;
-        ySpeed := 0;
-        ty     := ty - speed + jitter - level;
+        //Updste score, start Collision Timeout Print score
+	playerScore := playerScore + 10;
+        ySpeed     := 0;
+        ty         := ty - speed + jitter - level;
         colTimeout := 30;
         moveto(12,1,$04);
- 	      printdecimal(playerScore,4);
+	printdecimal(playerScore,4);
     end;  	
 end;
 
@@ -81,18 +81,18 @@ begin
     moveto(15,11,$04);
     printstring("GAME OVER!",0,10);
     while (joystickbutton <> 1) do begin
-	     Joystick(1);
+        Joystick(1);
     end;
     printstring("          ",0,10);
     //Reset everything to starting values and positions
     InitVariables();
     //Move TikTok to starting position
-	  spritepos(tx,ty,0);
-	  //Move Player to starting position
-	  spritepos(px,py,1);
-	  //Clear Score
-	  moveto(12,1,$04);
- 	  printdecimal(playerScore,4);
+    spritepos(tx,ty,0);
+    //Move Player to starting position
+    spritepos(px,py,1);
+    //Clear Score
+    moveto(12,1,$04);
+    printdecimal(playerScore,4);
 end;
 
 /*
@@ -101,26 +101,26 @@ end;
 */
 procedure GameLoop();
 begin
-	  while (1 <> 0) do begin
+    while (1 <> 0) do begin
         //Check gameover and pause if Game is over
-        if gameOver = 1 then GameOver();
+	if gameOver = 1 then GameOver();
         if count = 0 then begin
-	          //This just slows the game down a bit, it is crazy fast otherwise.
+	    //This just slows the game down a bit, it is crazy fast otherwise.
             //Move Sprites
- 	          count := 10;
- 	          CheckBounce();
- 	      end else count := count - 1;
- 	      spritepos(tx,ty,0);
- 	      spritepos(px,py,1);
+	    count := 10;
+	    CheckBounce();
+	end else count := count - 1;
+	spritepos(tx,ty,0);
+	spritepos(px,py,1);
  	    
         //Check Input
- 	      CheckInput();
- 	    
- 	      //Count down Collision timeout if greater than 0 otherwise check Player to TikTok Collision
- 	      if colTimeout > 0 then colTimeout := colTimeout - 1
- 	      else CheckCollision();
-        level := (playerScore / 50);
- 	  end;
+ 	CheckInput();
+	
+	//Count down Collision timeout if greater than 0 otherwise check Player to TikTok Collision
+	if colTimeout > 0 then colTimeout := colTimeout - 1
+	else CheckCollision();
+	level := (playerScore / 50);
+    end;
 end;
 
 /*
@@ -131,16 +131,16 @@ begin
     moveto(15,11,$04);
     printstring("PRESS FIRE!",0,11);
     while (joystickbutton <> 1) do begin
-	    Joystick(1);
+        Joystick(1);
     end;
     printstring("           ",0,11);	
 end;
 
 procedure DrawLevel();
 begin
-	  //Draw the character level borders
-	  moveto(5,1,$04);
- 	  printstring("SCORE: ",0,7);
+    //Draw the character level borders
+    moveto(5,1,$04);
+    printstring("SCORE: ",0,7);
     //Draw the top bar.  Petscii code $56 is a thick looking X character
     //Putting the character directly into screen memory seems to be the only option as printstring will always output the root character which is V
     moveto(0,2,$04);
@@ -148,15 +148,15 @@ begin
     //Draw the sidebars, same method less characters.
     //When you use moveto you're already advanced in the line of screen memory you need.
     for i := 3 to 21 do begin
-	      moveto(0,i,$04);
-	      screenmemory[5]  := $56;
-	      screenmemory[34] := $56;
+        moveto(0,i,$04);
+	screenmemory[5]  := $56;
+	screenmemory[34] := $56;
     end;
     
-	  //Move TikTok to starting position
-	  spritepos(tx,ty,0);
-	  //Move Player to starting position
-	  spritepos(px,py,1);
+    //Move TikTok to starting position
+    spritepos(tx,ty,0);
+    //Move Player to starting position
+    spritepos(px,py,1);
 end;
 
 /*
@@ -164,11 +164,11 @@ end;
 */
 procedure InitVariables();
 begin
-	  tx          := 150;
-	  ty          := 150;
-	  px          := 150;
-	  py          := 200;
-	  playerScore := 0;
+    tx          := 150;
+    ty          := 150;
+    px          := 150;
+    py          := 200;
+    playerScore := 0;
     speed       := 1;
     xSpeed      := 1;
     ySpeed      := 0;
@@ -182,27 +182,27 @@ end;
 
 procedure InitSprites();
 begin
-	  //Init Sprites, No MultiColour, 1 and 2 Sprites turned on, no stretching, Colours
+    //Init Sprites, No MultiColour, 1 and 2 Sprites turned on, no stretching, Colours
     sprite_multicolor :=%00000000;
-	  sprite_bitmask    :=%00000011;
-	  sprite_stretch_x  :=$00;
-	  sprite_stretch_y  :=$00;
-	  sprite_color[0]   :=red;	
-	  sprite_color[1]   :=white;
+    sprite_bitmask    :=%00000011;
+    sprite_stretch_x  :=$00;
+    sprite_stretch_y  :=$00;
+    sprite_color[0]   :=red;	
+    sprite_color[1]   :=white;
     //Set Sprite pointers to the memory location we included them in increments of 64 bytes
-	  setspriteloc(0,@spriteLoc/64, 0);
-	  setspriteloc(1,@spriteLoc/64+1, 0);
+    setspriteloc(0,@spriteLoc/64, 0);
+    setspriteloc(1,@spriteLoc/64+1, 0);
 end;
 
 procedure InitScreen();
 begin
-	  //This function sets up the screen mode, colours and clears the screen
+    //This function sets up the screen mode, colours and clears the screen
     screen_fg_col := black;
     screen_bg_col := red;
-	  SetTextMode();
-	  SetRegularColorMode();
+    SetTextMode();
+    SetRegularColorMode();
     ClearScreen(key_space,screen_char_loc);
-	  // Fill the upper screen color ram with black
+    // Fill the upper screen color ram with black
     ClearScreen(green, SCREEN_COL_LOC);
 end;
 
