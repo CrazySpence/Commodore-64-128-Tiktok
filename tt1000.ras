@@ -1,110 +1,109 @@
 program TT1000;
 var  
 
-   const useKernal  : byte =  0;
-   i,j,x,dx,y,time,val,ystart : byte;
-   arrayPos,arrayCol : integer;
-   orig_vic         : byte;
-   // charset will be placed at $2000 in bank 1	
-   const charsetLocation: address = $2000;
-   charsetSmall : IncBin("r1000-2.bin",charsetLocation); 
-   colors       : IncBin("r1000-2_color.bin",$2800);
-   colorP 		: pointer;
+    const useKernal  : byte =  0;
+    i,j,x,dx,y,time,val,ystart : byte;
+    arrayPos,arrayCol : integer;
+    orig_vic         : byte;
+    // charset will be placed at $2000 in bank 1	
+    const charsetLocation: address = $2000;
+    charsetSmall : IncBin("r1000-2.bin",charsetLocation); 
+    colors       : IncBin("r1000-2_color.bin",$2800);
+    colorP 		: pointer;
                                 
 
-   //scroller text vars
-   scrollVal  : byte    = 0;
-   scrollerPos: byte    = 9;
-   scrollSpeed: integer = 2;
-   tp1: pointer;
-   tp2: pointer;
-   tp3: pointer;
-   tp4: pointer;
-   tp5: pointer;
-   tp6: pointer;
+    //scroller text vars
+    scrollVal  : byte    = 0;
+    scrollerPos: byte    = 9;
+    scrollSpeed: integer = 2;
+    tp1: pointer;
+    tp2: pointer;
+    tp3: pointer;
+    tp4: pointer;
+    tp5: pointer;
+    tp6: pointer;
   
-   logoArray1 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$01,$02,$03,$04,$05,$00,$06,$07,$08,$09,$0a,$00,$0b,$0c,$0d,
-									$0e,$0f,$10,$00,$00,$00,$0c,$0d,$0e,$0f,$11,$12,$13,$14,$00,$15,
-									$16,$17,$01,$02,$03,$04,$18,$00,$19,$1a,$00,$1b,$1c,$1d,$00,$0c,
-									$0d,$0e,$1e,$1f,$00,$20,$21,$22,$23,$24,$00,$01,$02,$03,$04,$18,
-									$00,$19,$25,$08,$09,$0a,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$FF
-									);
-   logoArray2 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$26,$27,$28,$29,$2a,$2b,$2c,$2d,
-									$2e,$2f,$30,$31,$32,$33,$34,$35,$36,$37,$38,$00,$00,$33,$34,$35,
-									$36,$37,$39,$3a,$3b,$3c,$00,$3d,$3e,$3f,$27,$28,$29,$2a,$40,$2c,
-									$41,$42,$00,$43,$44,$45,$33,$34,$35,$36,$37,$46,$47,$48,$49,$4a,
-									$4b,$4c,$4d,$27,$28,$29,$2a,$40,$2c,$41,$4e,$2f,$30,$31,$4f,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									);
-   logoArray3 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$50,$51,$52,$00,$53,$54,$55,$56,$57,$00,$58,$59,$5a,$5b,$5c,$5d,
-									$00,$5e,$5f,$00,$00,$60,$61,$62,$00,$63,$64,$65,$66,$67,$00,$68,
-									$69,$6a,$51,$52,$00,$53,$6b,$55,$56,$57,$00,$50,$6c,$6d,$5b,$5c,
-									$6e,$00,$5e,$6f,$65,$66,$67,$00,$70,$69,$71,$51,$52,$00,$53,$6b,
-									$55,$56,$57,$00,$58,$59,$72,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									);
-   logoArray4 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$73,$74,$75,$00,$76,$77,$78,$79,
-									$7a,$00,$7b,$7c,$7d,$7e,$7f,$80,$81,$82,$83,$00,$00,$00,$00,$00,
-									$00,$84,$85,$86,$87,$88,$89,$8a,$8b,$8c,$74,$8d,$00,$76,$77,$78,
-									$79,$8e,$00,$7b,$7c,$7d,$8f,$90,$91,$92,$93,$94,$86,$87,$88,$89,
-									$8a,$8b,$8c,$74,$8d,$00,$76,$77,$78,$79,$8e,$00,$7b,$7c,$7d,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+    logoArray1 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$01,$02,$03,$04,$05,$00,$06,$07,$08,$09,$0a,$00,$0b,$0c,$0d,
+				   $0e,$0f,$10,$00,$00,$00,$0c,$0d,$0e,$0f,$11,$12,$13,$14,$00,$15,
+				   $16,$17,$01,$02,$03,$04,$18,$00,$19,$1a,$00,$1b,$1c,$1d,$00,$0c,
+				   $0d,$0e,$1e,$1f,$00,$20,$21,$22,$23,$24,$00,$01,$02,$03,$04,$18,
+				   $00,$19,$25,$08,$09,$0a,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $FF
+				   );
+    logoArray2 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $26,$27,$28,$29,$2a,$2b,$2c,$2d,
+				   $2e,$2f,$30,$31,$32,$33,$34,$35,$36,$37,$38,$00,$00,$33,$34,$35,
+				   $36,$37,$39,$3a,$3b,$3c,$00,$3d,$3e,$3f,$27,$28,$29,$2a,$40,$2c,
+				   $41,$42,$00,$43,$44,$45,$33,$34,$35,$36,$37,$46,$47,$48,$49,$4a,
+				   $4b,$4c,$4d,$27,$28,$29,$2a,$40,$2c,$41,$4e,$2f,$30,$31,$4f,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   );
+    logoArray3 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $50,$51,$52,$00,$53,$54,$55,$56,$57,$00,$58,$59,$5a,$5b,$5c,$5d,
+				   $00,$5e,$5f,$00,$00,$60,$61,$62,$00,$63,$64,$65,$66,$67,$00,$68,
+				   $69,$6a,$51,$52,$00,$53,$6b,$55,$56,$57,$00,$50,$6c,$6d,$5b,$5c,
+				   $6e,$00,$5e,$6f,$65,$66,$67,$00,$70,$69,$71,$51,$52,$00,$53,$6b,
+				   $55,$56,$57,$00,$58,$59,$72,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   );
+    logoArray4 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $73,$74,$75,$00,$76,$77,$78,$79,
+				   $7a,$00,$7b,$7c,$7d,$7e,$7f,$80,$81,$82,$83,$00,$00,$00,$00,$00,
+				   $00,$84,$85,$86,$87,$88,$89,$8a,$8b,$8c,$74,$8d,$00,$76,$77,$78,
+				   $79,$8e,$00,$7b,$7c,$7d,$8f,$90,$91,$92,$93,$94,$86,$87,$88,$89,
+				   $8a,$8b,$8c,$74,$8d,$00,$76,$77,$78,$79,$8e,$00,$7b,$7c,$7d,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
                                    );
-   logoArray5 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$95,$96,$97,$98,$99,$9a,$9b,$9c,$9d,$9e,$9f,$a0,$a1,$a2,$a3,$a4,
-									$00,$a5,$a6,$00,$00,$00,$00,$00,$00,$a7,$a8,$a9,$aa,$ab,$00,$ac,
-									$ad,$ae,$96,$97,$af,$99,$9a,$9b,$9c,$9d,$9e,$9f,$a0,$a1,$b0,$b1,
-									$b2,$00,$b3,$b4,$a9,$aa,$ab,$00,$ac,$ad,$ae,$96,$97,$af,$99,$9a,
-									$9b,$9c,$9d,$9e,$9f,$a0,$a1,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+    logoArray5 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $95,$96,$97,$98,$99,$9a,$9b,$9c,$9d,$9e,$9f,$a0,$a1,$a2,$a3,$a4,
+				   $00,$a5,$a6,$00,$00,$00,$00,$00,$00,$a7,$a8,$a9,$aa,$ab,$00,$ac,
+				   $ad,$ae,$96,$97,$af,$99,$9a,$9b,$9c,$9d,$9e,$9f,$a0,$a1,$b0,$b1,
+				   $b2,$00,$b3,$b4,$a9,$aa,$ab,$00,$ac,$ad,$ae,$96,$97,$af,$99,$9a,
+				   $9b,$9c,$9d,$9e,$9f,$a0,$a1,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
                                    );
-   logoArray6 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$b5,$b6,$b7,$b8,$b9,$ba,$bb,$bc,
-									$bd,$be,$bf,$c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7,$00,$00,$00,$00,$00,
-									$00,$c8,$c9,$ca,$cb,$cc,$00,$cd,$ce,$cf,$b6,$d0,$b8,$b9,$ba,$bb,
-									$d1,$d2,$d3,$d4,$d5,$d6,$d7,$d8,$c4,$c5,$d9,$c7,$ca,$cb,$cc,$00,
-									$cd,$ce,$da,$db,$dc,$dd,$de,$df,$e0,$e1,$bd,$d3,$d4,$d5,$d6,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
-									$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+    logoArray6 : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $b5,$b6,$b7,$b8,$b9,$ba,$bb,$bc,
+				   $bd,$be,$bf,$c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7,$00,$00,$00,$00,$00,
+				   $00,$c8,$c9,$ca,$cb,$cc,$00,$cd,$ce,$cf,$b6,$d0,$b8,$b9,$ba,$bb,
+				   $d1,$d2,$d3,$d4,$d5,$d6,$d7,$d8,$c4,$c5,$d9,$c7,$ca,$cb,$cc,$00,
+				   $cd,$ce,$da,$db,$dc,$dd,$de,$df,$e0,$e1,$bd,$d3,$d4,$d5,$d6,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+				   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
                                    );
 
-
-//starstuff
+    //starstuff
     // number of stars
-	const noStars : byte = 25;
-// Which character to use?
-	const charPos : byte = 227;
-// where to put char ROM data?
-	const charsetPos : address = $2000;
+    const noStars : byte = 25;
+    // Which character to use?
+    const charPos : byte = 227;
+    // where to put char ROM data?
+    const charsetPos : address = $2000;
     charsetVals: array[8] of byte =(1,2,4,8,16,32,64,128);	
 	
-	star = record
-		x,dx,ddx,color : byte;
-	end;
+    star = record
+        x,dx,ddx,color : byte;
+    end;
+    
+    stars : array[noStars] of star;
 
-	stars : array[noStars] of star;
-
-	// random table
-	rands: array[256] of byte;
-	zp,cp:pointer;
-	starColors:array[] of byte=(11,1, 2, 10, 6, 14, 7, 14,1);//GREY, WHITE, RED, LIGHT_RED, BLUE, YELLOW, LIGHT_BLUE, WHITE);	
+    // random table
+    rands: array[256] of byte;
+    zp,cp:pointer;
+    starColors:array[] of byte=(11,1, 2, 10, 6, 14, 7, 14,1);//GREY, WHITE, RED, LIGHT_RED, BLUE, YELLOW, LIGHT_BLUE, WHITE);	
 	
 procedure UpdateScrollAndTextLeft();
 procedure RenderStarfield();
@@ -114,26 +113,25 @@ procedure ColorText();
 
 interrupt RasterMain();
 begin
-	startirq(useKernal);
-	scrollx(0);
-	//screen_bg_col:=blue;
-	RenderStarfield();	
-	//screen_bg_col:=red;
-	UpdateStarfield();
-	//screen_bg_col:=black;
-	waitforraster(127);
-	nop(15);
-	screen_fg_col:=red;
-//	screen_bg_col:=purple;
-	scrollx(scrollVal);
-	UpdateScrollAndTextLeft();
-	
-	inc(time);
-	
-//	screen_bg_col:=yellow;
- //   screen_bg_col:=black;
-
-	closeirq();	
+    startirq(useKernal);
+    scrollx(0);
+    //screen_bg_col:=blue;
+    RenderStarfield();	
+    //screen_bg_col:=red;
+    UpdateStarfield();
+    //screen_bg_col:=black;
+    waitforraster(127);
+    nop(15);
+    screen_fg_col:=red;
+    //screen_bg_col:=purple;
+    scrollx(scrollVal);
+    UpdateScrollAndTextLeft();
+    
+    inc(time);
+    //screen_bg_col:=yellow;
+    //screen_bg_col:=black;
+    
+    closeirq();	
 end;
 
 //Scroller Procedures
@@ -143,10 +141,10 @@ end;
 
 procedure ColorText();
 begin
-	for i:=0 to 6 do begin
-		moveto(0,scrollerPos+i, hi(screen_col_loc));
-		for x:=0 to 39 do begin 
-			screenmemory[x] := 8;
+    for i:=0 to 6 do begin
+        moveto(0,scrollerPos+i, hi(screen_col_loc));
+	for x:=0 to 39 do begin 
+	    screenmemory[x] := 8;
     	end;
     end;
 end;
@@ -154,21 +152,19 @@ end;
 /* Print the 6 lines of the Charset logo */
 procedure PrintText();
 begin
-	moveto(0,scrollerPos,hi(screen_char_loc));
-	memcpy(tp1, 0, screenmemory, screen_width);
-	moveto(0,scrollerPos+1,hi(screen_char_loc));
-	memcpy(tp2, 0, screenmemory, screen_width);
-	moveto(0,scrollerPos+2,hi(screen_char_loc));
-	
-	memcpy(tp3, 0, screenmemory, screen_width);
-	moveto(0,scrollerPos+3,hi(screen_char_loc));
-	screen_fg_col:=black;
-	memcpy(tp4, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos,hi(screen_char_loc));
+    memcpy(tp1, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+1,hi(screen_char_loc));
+    memcpy(tp2, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+2,hi(screen_char_loc));
+    memcpy(tp3, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+3,hi(screen_char_loc));
+    screen_fg_col:=black;
+    memcpy(tp4, 0, screenmemory, screen_width);
     moveto(0,scrollerPos+4,hi(screen_char_loc));
-	memcpy(tp5, 0, screenmemory, screen_width);
+    memcpy(tp5, 0, screenmemory, screen_width);
     moveto(0,scrollerPos+5,hi(screen_char_loc));
-	memcpy(tp6, 0, screenmemory, screen_width);	
-	
+    memcpy(tp6, 0, screenmemory, screen_width);		
 end;
 
 /*
@@ -178,72 +174,70 @@ end;
 */
 procedure UpdateScrollAndTextLeft();
 begin
-	// Scroll has looped 8 pixels
-	if (scrollVal<=0) then 
-	begin
-		
-		// Reset scroll value
-		scrollVal:=7; 
-		// Increase text pointer
-		tp1:=tp1+1;
-		tp2:=tp2+1;
-		tp3:=tp3+1;
-		tp4:=tp4+1;
-		tp5:=tp5+1;
-		tp6:=tp6+1;
-		
-		if(tp1[39]=$FF) then begin //dont have to check each one, if one is 0 they all need to be reset
-			tp1:=#logoArray1;
-			tp2:=#logoArray2;
-			tp3:=#logoArray3;
-			tp4:=#logoArray4;
-			tp5:=#logoArray5;
-			tp6:=#logoArray6;	
-		end;
-		// Print new string to the screen
-		PrintText();			
-	end
-	else begin
-		scrollVal := scrollVal - 1;
-		waitforraster(175);
-		scrollx(0);
-		screen_fg_col:=black;
+    // Scroll has looped 8 pixels
+    if (scrollVal<=0) then 
+    begin
+        // Reset scroll value
+	scrollVal:=7; 
+	// Increase text pointer
+	tp1:=tp1+1;
+	tp2:=tp2+1;
+	tp3:=tp3+1;
+	tp4:=tp4+1;
+	tp5:=tp5+1;
+	tp6:=tp6+1;
+	
+	if(tp1[39]=$FF) then begin //dont have to check each one, if one is 0 they all need to be reset
+	    tp1:=#logoArray1;
+	    tp2:=#logoArray2;
+	    tp3:=#logoArray3;
+	    tp4:=#logoArray4;
+	    tp5:=#logoArray5;
+	    tp6:=#logoArray6;	
+	end;
+	// Print new string to the screen
+	PrintText();			
+    end
+    else begin
+        scrollVal := scrollVal - 1;
+        waitforraster(175);
+	scrollx(0);
+	screen_fg_col:=black;
     end;
 end;
 
 // Creates 8 characters with 1 dot in each char from @charPos
 procedure GenerateCharset();
 begin
-	zp:=#charsetPos + charPos*8;
-	for i:=0 to 8 do begin
-		for j:=0 to 8 do begin
-			zp[j] := 0;
-		end;
-		zp[4] := charsetVals[i];
-		zp+=8;
+    zp:=#charsetPos + charPos*8;
+    for i:=0 to 8 do begin
+        for j:=0 to 8 do begin
+	    zp[j] := 0;
 	end;
-
+	zp[4] := charsetVals[i];
+	zp+=8;
+    end;
 end;
 
 // initializes starfield
 procedure InitializeStarfield();
 begin
-	j:=42;
-	for i:=0 to noStars do begin
-		stars[i].x := rands[i]/2;  // 0-40
-		stars[i].dx := rands[j]&63; // 0-64 (will be divided by 8)
-		stars[i].color := starColors[j&7];  // 0-7
-		stars[i].ddx := rands[i]&7+1;  // 1-8
-		j+=11; // just some random shift
-	end;
+    j:=42;
+    for i:=0 to noStars do begin
+        stars[i].x := rands[i]/2;  // 0-40
+        stars[i].dx := rands[j]&63; // 0-64 (will be divided by 8)
+	stars[i].color := starColors[j&7];  // 0-7
+	stars[i].ddx := rands[i]&7+1;  // 1-8
+	j+=11; // just some random shift
+    end;
 end;
 
 // Initialize random table
 procedure InitializeRand();
 begin
-	for i:=0 to 0 do begin
-		rands[i]:=random()/2;
-		if (rands[i]>80) then rands[i]-=80;
+    for i:=0 to 0 do begin
+        rands[i]:=random()/2;
+	if (rands[i]>80) then rands[i]-=80;
     end
 end;
 
@@ -252,44 +246,43 @@ end;
 // the charpos should be inverted and lose the +7, write in assembler etc
 procedure RenderStarfield();
 begin
-	moveto(0,0,hi(screen_char_loc));
-	cp:=#screen_col_loc;
-	for i:=0 to noStars do begin
-		if (i<8 or i>15) then begin // ignore stars at line 12
-			x:=stars[i].x;
-			dx:=stars[i].dx/8;
-			screenmemory[x]:=charPos+7-dx;
-			if x<>39 then
-				screenmemory[x+1]:=$e2
-			else
-				screenmemory[0]:=$e2;
+    moveto(0,0,hi(screen_char_loc));
+    cp:=#screen_col_loc;
+    for i:=0 to noStars do begin
+        if (i<8 or i>15) then begin // ignore stars at line 12
+	    x:=stars[i].x;
+	    dx:=stars[i].dx/8;
+	    screenmemory[x]:=charPos+7-dx;
+	    if x<>39 then
+	        screenmemory[x+1]:=$e2
+	    else
+	        screenmemory[0]:=$e2;
+		
+            cp[x]:=stars[i].color;
 
-			cp[x]:=stars[i].color;
-
-		end;
-		screenmemory += screen_width;
-		cp += screen_width;
 	end;
+	screenmemory += screen_width;
+	cp += screen_width;
+    end;
 end;
 
 // Move the stars
 
 procedure UpdateStarfield();
 begin
-	for i:=0 to noStars do begin
-		dx:=stars[i].dx-stars[i].ddx;
-		if dx>127 then begin
-			stars[i].x-=1;
-			if stars[i].x>127 then begin	
-				stars[i].x:=39;
-				stars[i].ddx:=rands[time]&7+1;
-			end;
-			stars[i].dx:=63;
-		end
-		else 	
-		stars[i].dx:=dx;
+    for i:=0 to noStars do begin
+        dx:=stars[i].dx-stars[i].ddx;
+	if dx>127 then begin
+	    stars[i].x-=1;
+	    if stars[i].x>127 then begin	
+	        stars[i].x:=39;
+		stars[i].ddx:=rands[time]&7+1;
+	    end;
+	    stars[i].dx:=63;
+	    end
+	    else 
+	        stars[i].dx:=dx;
 	end;
-
 end;
 
 
@@ -300,21 +293,20 @@ begin
     screen_bg_col:=black;
     multicolor_char_col[1]:=black;
     multicolor_char_col[2]:=12;
-	setmulticolormode();
-	HideBorderx(1);
-	clearscreen(8, screen_col_loc);
+    setmulticolormode();
+    HideBorderx(1);
+    clearscreen(8, screen_col_loc);
     ColorText(); //Colour the Logo area
     ClearScreen($00,screen_char_loc);
-	// Fill the screen color ram with black
+    // Fill the screen color ram with black
    
     //pointers for scrolling
-	tp1:=#logoArray1;
-	tp2:=#logoArray2;
-	tp3:=#logoArray3;
-	tp4:=#logoArray4;
-	tp5:=#logoArray5;
-	tp6:=#logoArray6;
-   
+    tp1:=#logoArray1;
+    tp2:=#logoArray2;
+    tp3:=#logoArray3;
+    tp4:=#logoArray4;
+    tp5:=#logoArray5;
+    tp6:=#logoArray6;   
 end;
 
 begin
@@ -334,4 +326,3 @@ begin
    enableirq();
    Loop();
 end.
-
