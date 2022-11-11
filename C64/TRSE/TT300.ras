@@ -1,0 +1,448 @@
+program tt300;
+var  
+   const useKernal         : byte =  0;
+   sidfile                 : incsid("resources/sid/sixpack.sid",2); 
+   i,j,k,x,z,reverse,time  : byte;
+   socialt,socialy         : byte; //twitter, youtube Y line values
+   // Logo charset will be placed at $2000 in bank 1	
+   const charsetLocation   : address = $2000;
+   charsetSmall            : IncBin("resources/charsets/cslogo2.bin",@charsetLocation); 
+   colors                  : IncBin("resources/charsets/cslogo2_color.bin",$2800);
+   colorP,socColorP	        : pointer;
+   charset2                : IncBin("resources/charsets/charset.bin",$a000);
+                                
+   //scroller logo vars
+   scrollVal       : byte      = 0;
+   scrollerPos     : byte      = 5;
+   scrollerArray   : array[16] of byte = (2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,0);
+   //scroller text vars
+   scrollValBottom : byte      = 0;
+   scrollPosBottom : byte      = 23;
+   //Logo pointers
+   tp1             : pointer;
+   tp2             : pointer;
+   tp3             : pointer;
+   tp4             : pointer;
+   tp5             : pointer;
+   tp6             : pointer;
+   //Regular classic scroller Pointer
+   textPointer     : pointer;
+   //I split this up line by line incase I ever wanted to do something cool with it but this is the CRAZYSPENCE logo line by line
+   logoArray1      : array[] of byte = (0,$c8,$c8,$c8,$c8,$c8,$c8,$00,$01,$02,$03,$04,$05,$06,$03,$07,$01,$02,$03,$04,$08,$09,$06,$0a,$0b,$0c,$0d,$0e,$01,$02,$03,$04,$05,$06,$03,$04,$05,$05,$06,$0a,$0f,$0c,$0d,$0e,$01,$02,$03,$04,$05,$05,$06,$0e,$c8,$c8,$c8,$c8,0);
+   logoArray2      : array[] of byte = (0,$c8,$c8,$c8,$c8,$c8,$c8,$10,$11,$12,$13,$14,$15,$16,$13,$17,$11,$12,$13,$18,$19,$1a,$1b,$1c,$1d,$1e,$1f,$20,$11,$12,$13,$14,$15,$16,$13,$14,$15,$16,$21,$22,$23,$24,$1f,$20,$11,$12,$13,$14,$15,$16,$21,$25,$c8,$c8,$c8,$c8,0);
+   logoArray3      : array[] of byte = (0,$c8,$c8,$c8,$c8,$c8,$c8,$26,$27,$28,$29,$2a,$2b,$2c,$2d,$2e,$2f,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3a,$3b,$3c,$3d,$3e,$2b,$2c,$3f,$40,$2b,$2c,$41,$42,$43,$44,$45,$46,$27,$28,$29,$2a,$2b,$2c,$41,$0c,$c8,$c8,$c8,$c8,0);
+   logoArray4      : array[] of byte = (0,$c8,$c8,$c8,$c8,$c8,$c8,$47,$48,$49,$33,$47,$4a,$4b,$4c,$4d,$4a,$4b,$4e,$4f,$50,$51,$52,$33,$53,$54,$55,$56,$57,$58,$59,$5a,$4a,$4b,$5b,$5c,$5d,$5e,$5f,$60,$48,$61,$62,$63,$48,$49,$33,$47,$5d,$5e,$5f,$64,$c8,$c8,$c8,$c8,0);
+   logoArray5      : array[] of byte = (0,$c8,$c8,$c8,$c8,$c8,$c8,$65,$66,$67,$68,$69,$6a,$6b,$6c,$6d,$6a,$6b,$6e,$6f,$70,$71,$72,$73,$74,$75,$76,$65,$77,$67,$68,$69,$6a,$6b,$33,$65,$78,$79,$7a,$7b,$6a,$7c,$7d,$69,$66,$67,$68,$69,$78,$79,$7a,$73,$c8,$c8,$c8,$c8,0);
+   logoArray6      : array[] of byte = (0,$c8,$c8,$c8,$c8,$c8,$c8,$7e,$7f,$80,$81,$82,$83,$84,$85,$86,$83,$84,$85,$86,$80,$80,$80,$87,$33,$88,$89,$7e,$7f,$80,$81,$82,$83,$84,$33,$8a,$80,$80,$80,$86,$83,$84,$8b,$8c,$7f,$80,$81,$82,$80,$80,$80,$87,$c8,$c8,$c8,$c8,0);
+   scrollerT       : cstring = ("                                        300 FOLLOWERS ON TIKTOK THE JOURNEY HERE SO FAR HAS ",
+					  "BEEN SUPER FUN AND I WOULD LIKE TO THANK EVERYONE THAT WATCHES MY VIDEOS FEEL FREE TO CHECKOUT MY TWITCH ",
+					 "YOUTUBE AND TWITTER AS WELL BY SEARCHING FOR CRAZYSPENCE                                            ");
+  //spritebar
+  @define spriteLoc  $3000
+  sprites                 : incbin("resources/sprites/rastersprite.bin", @spriteLoc);
+  posX                    : integer;
+  yMin,yMax,reverseSprite : byte;
+  sprite_priority         : pointer;
+  sine_wave               : array[256] of byte;
+  
+
+@startblock $3241 "Main Code"	
+
+procedure RasterBarASM();
+begin
+    /* Assembler Raster bar with timing table and blue palatte 
+       This does not turn everything into a border so text elements can be put on it
+       Works on starting line 102,110,134,142, 150, 158, 166 etc. Some flicker on the right edge 
+       may occur. I'm very new.
+       
+       I believe I have fixed the timing to the right it should no longer flicker and works if the Y is every 8 lines
+       
+       This procedure takes the ideas from a couple tutorials I followed and some forum posts I read and glues them together
+       into a TRSE procedure
+    */
+	asm("              
+         ldy z            ;load TRSE variable z into y
+         ldx #$00         ;load $00 into X
+raschk   cpy $d012        ;ComPare current value in Y with the current rasterposition in $d012.
+         bne raschk       ;is the value of Y not equal to current rasterposition? then jump back to raschk
+       
+loopz:   ldy raztime,x    ;Read the timing table plus value of register x
+delay    dey              ;decrease y     
+         bne delay        ;go back to delay until 0
+         
+         lda colorz,x     ;load value at label 'colors' plus x into a. 
+         
+         ;sta $d020        ;store the current value of A (a color of our rasterbar)
+         sta $d021        ;into the bordercolour and screen colour
+         
+         inx              ;increase X
+         cpx #48          ;compare X to #48 (decimal). have we had all lines of our bar yet?
+         beq exitz        ;Branch if EQual. if yes, jump to exit.
+
+         jmp loopz        ;jump to loop.
+
+exitz:	 rts              ; return to TRSE program
+
+colorz
+         .byte $00,$00,$00,$00,$00,$00 ; i blacked out some lines in this one to make way for the sprite bar
+         .byte $00,$06,$0e,$0e,$0e,$03
+         .byte $0e,$03,$03,$0e,$03,$01
+         .byte $03,$01,$01,$01,$01,$01
+         .byte $01,$01,$01,$01,$01,$01
+         .byte $01,$01,$01,$01,$01,$03,$01,$03,$0e ; added 3 more white lines to the middle
+         .byte $03,$03,$0e,$03,$0e,$0e
+         .byte $0e,$06,$00,$00,$00,$00
+         .byte $00,$00,$00
+         .byte $ff	
+         
+raztime      .byte $05,$05,$05,$05 ; I went line by line on the raster bar adjusting each line to fit
+             .byte $01,$01,$07,$08
+             .byte $09,$08,$0b,$09
+             .byte $0b,$06,$08,$05
+             .byte $09,$08,$08,$08
+             .byte $09,$0f,$0f,$0f
+             .byte $0f,$0f,$08,$08
+             .byte $08,$01,$08,$05
+             .byte $08,$08,$08,$08
+             .byte $09,$01,$08,$08
+             .byte $0c,$08,$08,$09
+             .byte $08,$01,$09,$08 ;48
+             .byte $08,$08,$08,$08 ;52  
+             .byte $08,$08,$08,$08  
+	");
+end;
+
+procedure UpdateScrollAndTextLeft();
+procedure UpdateScrollAndTextRight();
+procedure UpdateScrollAndBottomText();
+procedure drawSocial();
+procedure flashText();
+procedure drawSprite();
+/* Interrupts */
+
+interrupt RasterMain();
+begin
+    startirq(useKernal);
+    setbank(vic_bank0);
+	
+    setmulticolormode();
+    HideBorderx(1);
+    //set the big text character set
+    SetCharsetLocation(charsetLocation); 
+   
+    //screen_bg_col:=blue;
+    if (reverse=0) then begin UpdateScrollAndTextLeft();
+    end else begin UpdateScrollAndTextRight();
+    end;
+    scrollx(scrollVal);
+    //screen_bg_col:=black;
+    waitforraster(164);
+    scrollx(0);
+    //screen_bg_col:=yellow;
+    setbank(vic_bank2);
+    //Set to my normal character set
+    SetCharsetLocation($a000); 
+    HideBorderx(1);
+    setregularcolormode();
+    settextmode();
+    //screen_bg_col:=black;
+    RasterBarASM();  //Draw Raster bar
+    //screen_bg_col := green;
+    scrollx(scrollValBottom);
+    drawSocial(); //Move to and draw socials//screen_bg_col:=green; 
+    UpdateScrollAndBottomText();
+    if(time&7 = 0) then begin 
+    	flashText(); //Flash Social
+    end	
+    else begin
+    	call(sidfile_1_play);
+    end;
+      
+    time  := time + 1;
+    //screen_bg_col:=black;
+    closeirq();	
+end;
+
+//Bottom Scroller Procedures
+/*
+  The following method just copes the current contents of textPointer to screenmemory
+*/
+
+procedure PrintBottomText();
+begin
+    moveto(0,scrollPosBottom,hi(screen_char_loc3));
+    memcpy(textPointer, 0, screenmemory, screen_width-2);
+end;
+
+/*
+ The following method decreases the scroll value. If the value is zero, then
+ the scroll value is reset to 7, the text pointer is increased and a new
+ text is printed to the screen. 
+*/
+procedure UpdateScrollAndBottomText();
+begin
+    // Scroll has looped 8 pixels
+    if (scrollValBottom=0) then 
+    begin
+        // Reset scroll value
+        scrollValBottom:=7; 
+        // Increase text pointer
+	textPointer:=textPointer+1;
+	// Reset scroller text if string termination "0" is encountered
+	if (textPointer[39]=0) then textPointer:=#scrollerT;
+	    // Print new string to the screen
+	    PrintBottomText();			
+	end
+	else dec(scrollValBottom);
+end;
+
+
+//Logo Scroller Procedures
+
+/* colour the logo, since we don't bank switch this is run in init screen */
+/* Try and optimize some day, it's awful */
+
+procedure ColorText();
+begin
+    for i:=0 to 6 do begin
+        moveto(0,scrollerPos+i, hi(screen_col_loc));
+	for x:=0 to 39 do begin 
+	    screenmemory[x] := colors[$65]+8;
+    	end;
+    end;
+end;
+
+/* Print the 6 lines of the Charset logo */
+procedure PrintText();
+begin
+    moveto(0,scrollerPos,hi(screen_char_loc));
+    memcpy(tp1, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+1,hi(screen_char_loc));
+    memcpy(tp2, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+2,hi(screen_char_loc));
+    memcpy(tp3, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+3,hi(screen_char_loc));
+    memcpy(tp4, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+4,hi(screen_char_loc));
+    memcpy(tp5, 0, screenmemory, screen_width);
+    moveto(0,scrollerPos+5,hi(screen_char_loc));
+    memcpy(tp6, 0, screenmemory, screen_width);	
+end;
+
+/*
+ The following method decreases the scroll value. If the value is zero, then
+ the scroll value is reset to 7, the text pointer is increased and a new
+ text is printed to the screen. 
+*/
+
+procedure UpdateScrollAndTextLeft();
+begin
+    // Scroll has looped 8 pixels
+    if (scrollVal&7=0) then 
+    begin
+        // Reset scroll value
+	scrollVal:=7; 
+	// Increase text pointer
+	tp1:=tp1+1;
+	tp2:=tp2+1;
+	tp3:=tp3+1;
+	tp4:=tp4+1;
+	tp5:=tp5+1;
+	tp6:=tp6+1;
+	// Reset scroller text if string termination "0" is encountered
+	if (tp1[39]=0) then begin 
+	    reverse := 1;
+	end;
+	// Print new string to the screen
+        PrintText();
+    end
+    else begin
+        scrollVal := scrollVal - 1;
+	drawSprite();
+    end;
+end;
+
+procedure UpdateScrollAndTextRight();
+begin
+    // Scroll has looped 8 pixels
+    if (scrollVal&7=7) then 
+    begin
+        // Reset scroll value
+	scrollVal:=0; 
+	// decrease text pointer
+	tp1:=tp1-1;
+	tp2:=tp2-1;
+	tp3:=tp3-1;
+	tp4:=tp4-1;
+	tp5:=tp5-1;
+	tp6:=tp6-1;
+	// Reset scroller text if string termination "0" is encountered
+	if (tp1[2]=0) then begin 
+	    reverse := 0;
+	end;
+	// Print new string to the screen
+	PrintText();			
+    end
+    else begin
+        scrollVal := scrollVal + 1;
+	drawSprite();
+    end;
+end;
+
+//Social section
+procedure drawSocial();
+begin
+    moveto(8,socialt, hi(screen_char_loc3));
+    printstring("@CRAZYSPENCE ON TWITTER",0,23);
+    moveto(8,socialy,hi(screen_char_loc3));
+    printstring("/CRAZYSPENCE ON YOUTUBE",0,23);
+end;
+
+procedure flashText();
+/* through color pointers I paint the flashy text */
+begin
+    if (i <= 7) then begin
+        k := i+1;
+	fillfast(socColorP,k,25);	
+    end
+    else begin
+    	fillfast(socColorP,black,23);
+    end;
+    socColorP := socColorP + 40;
+    if (i >= 9 AND i <= 16) then begin
+        k := i-6;
+        fillfast(socColorP,k,23);
+    end
+    else begin
+        fillfast(socColorP,black,23);
+    end;
+    i := i + 1;
+    if (i = 26) then i := 0;
+    //scroller color gradient
+    socColorP := socColorP + 192;
+    fillfast(socColorP,dark_grey,4);
+    socColorP := socColorP + 4;
+    fillfast(socColorP,grey,2);
+    socColorP := socColorP + 2;
+    fillfast(socColorP,white,26);
+    socColorP := socColorP + 26;
+    fillfast(socColorP,grey,2);
+    socColorP := socColorP + 2;
+    fillfast(socColorP,dark_grey,4);	
+    socColorP := socColorP - 266;        
+end;
+
+procedure drawSprite();
+begin
+    posX :=30;
+    
+    for j:=0 to 8 do begin
+        spritepos(posX,(sine_wave[time]+57),j);	
+	posX := posX + 48;
+    end;
+    
+    if (sine_wave[time]+57) = yMax then begin
+        sprite_priority[0] := %11111111;
+	reverseSprite := 1;
+    end; 
+    if (sine_wave[time]+57) = yMin then begin
+        sprite_priority[0] := %00000000;
+	reverseSprite := 0;
+    end;	
+	
+end;
+
+procedure InitSprite();
+begin
+    sprite_multicolor      :=%11111111;
+    sprite_bitmask         :=%11111111;
+    sprite_stretch_x       :=$FF;
+    sprite_stretch_y       :=$00;
+    sprite_multicolor_reg1 :=red;
+    sprite_multicolor_reg2 :=light_red;
+    sprite_priority[0]     := %00000000;
+    for i:=0 to 8 do begin
+        sprite_color[i]:=light_grey;
+	setspriteloc(i,@spriteLoc/64+i,0);
+    end;
+	
+end;
+
+procedure InitScreen();
+begin
+    //Bank 1 init
+    setbank(vic_bank0);
+    //Set Colours
+    screen_fg_col:=black;
+    screen_bg_col:=black;
+    multicolor_char_col[1]:=black;
+    multicolor_char_col[2]:=light_grey;
+    setmulticolormode();
+    HideBorderx(1);
+	 
+    ClearScreen($c8,screen_char_loc);
+    // Fill the screen color ram with black
+    clearscreen(black, screen_col_loc);
+    ColorText(); //Colour the Logo area
+    //pointers for scrolling
+    tp1:=#logoArray1;
+    tp2:=#logoArray2;
+    tp3:=#logoArray3;
+    tp4:=#logoArray4;
+    tp5:=#logoArray5;
+    tp6:=#logoArray6;
+    InitSprite();
+end;
+
+procedure InitScreen2();
+begin
+    //bank 2 init
+    setbank(vic_bank2);
+    settextmode();
+    setregularcolormode();
+    screen_fg_col:=black;
+    screen_bg_col:=black;
+    HideBorderx(1);	 
+    ClearScreen(" ",screen_char_loc3);
+end;
+
+
+procedure InitGlobal();
+begin
+   i             := 0;
+   reverse       := 0;
+   colorP        := colors[$00]+8;
+   z             := 166;
+   socialt       := 17;
+   socialy       := 18;
+   socColorP     := #screen_col_loc;
+   socColorP     := socColorP + screen_width * 17 + 8; //Location of top Social string
+   textPointer   := #scrollerT; //Scroller text pointer
+   yMin          := 75;
+   yMax          := 140;
+   reverseSprite := 0;
+   sprite_priority := $d01b;
+   //generate SINE wave
+   for i:=0 to 256 do begin
+       sine_wave[i]:=sine[i]/3;	
+   end;
+   InitSid(sidfile_1_init); //Init SID music
+end;
+
+
+begin
+   InitGlobal();
+   InitScreen();
+   InitScreen2();
+   SetCharsetLocation(charsetLocation); 
+   //Set up interrupt
+   preventirq();
+   disableciainterrupts();
+   SetMemoryConfig(1,@useKernal,0);
+   RasterIRQ(RasterMain(),0,useKernal);
+   EnableRasterIRQ();
+   enableirq();
+   Loop();
+end.
+
+@endblock
