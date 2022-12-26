@@ -1,0 +1,307 @@
+program lastsnowball;
+/*
+    The Last Snowball made by CrazySpence
+    
+    This game takes the small_game for the C128 tutorial and makes a more complete game out of it with an Xmas theme
+    The Tileset GFX was created and exported in Charpad Pro
+    
+    Sprite and Title screen created in TRSE editors
+*/
+var  
+   count,i,k,l,gameOver,level,colTimeout,ty,py,joyTimeout: byte; 
+   playerScore,xSpeed,ySpeed,jitter,tx,px,speed : integer;
+   m : pointer;
+   @define spriteLoc  $3000
+   
+   const charsetLocation  : address = $2000;
+   charset                : IncBin("Chars.bin",charsetLocation);
+   colors                 : Incbin("CharAttribs_L1.bin",charsetLocation+$5b9);
+   tile_data              : Incbin("Tiles.bin",charsetLocation+$5b9+$b7);
+   map_data               : Incbin("Map.bin",charsetLocation+$5b9+$b7+$81);
+   title_image            : Incbin("title_data.bin",$6000);
+   title_color            : Incbin("title_color.bin",$5000);
+   
+
+
+@export "sprites.flf" "sprites.bin" 256
+@export "santatitle.flf" "title.bin" 256
+
+   sprites  : incbin("sprites.bin", @spriteLoc);
+   
+procedure InitVariables();
+/*
+    Check Joystick input for the player
+*/
+procedure CheckInput();
+begin
+    if(joyTimeout = 0) then begin
+        Joystick(2);
+        if(joystickleft=1) then begin
+            if px > 69 then px := px - 1;
+        end;    
+        if(joystickright=1)	then begin 
+            if px < 275 then px := px + 1;
+        end;
+        joyTimeout := 2;
+    end else joyTimeout := joyTimeout - 1;
+end;
+
+/*
+    Check Snowball to Wall collision. Fixed positions so easy peasy
+*/
+procedure CheckBounce();
+begin
+    /* interesting issue arose where the math wasn't working like it did in BASIC 7
+     If I tried to do a negative number with integer it went haywire
+     If I use byte then obviously I run out of allocation on the X axis
+     So I hacked this together instead and it seems to work
+     
+     The on/off of xSpeed (and y) just indicates whether to add from x/y or minus
+    */
+    
+    if level > 2 then jitter := Random() & 1; //mess with the angle a bit
+    if tx <= 69  then xSpeed := 1;
+    if tx >= 271 then xSpeed := 0;
+    if ty <= 75  then ySpeed := 1;
+    if ty >= 220 then gameOver := 1; //Oops you Missed!
+    
+    if xSpeed = 0 then tx := tx - speed - jitter - level
+    else tx := tx + speed + jitter + level;
+    if ySpeed = 0 then ty := ty - speed - level
+    else ty := ty + speed + level;
+end;
+
+/*
+    Check Player to Snowball Collision
+*/
+procedure CheckCollision();
+begin
+    //Grab TT and Player X difference
+    i := abs(tx - px);
+    //Grab TT and Player Y difference
+    k := abs(ty - py);
+    
+    //Divide by 2 and add together
+    k := k/2 + i/2;
+
+    if k < 11 then begin
+        //Update score, start Collision Timeout Print score
+	    playerScore := playerScore + 10;
+        ySpeed     := 0;
+        ty         := ty - speed + jitter - level;
+        colTimeout := 100;
+        moveto(12,0,$04);
+	    printdecimal(playerScore,4);
+	    fillfast((screen_col_loc+12),blue,4); //make sure the text background matches
+	    PlaySound(sid_channel3, 
+				4,  // Volume
+				40+Random()/16,  // Hi byte frequency
+				0*16+0,  // Attack voice 1
+				3*16 + 3,   // Sustain = 16*15 + release=6
+				1 +sid_saw,  // Waveform
+				sid_saw);  // waveform 
+    end;  	
+end;
+
+/*
+    Player lost, freeze game until fire is pressed and reset all variables
+*/
+procedure GameOver();
+begin
+    moveto(15,11,$04);
+    printstring("GAME OVER!",0,10);
+    fillfast((screen_col_loc+(11*40)+15),blue,9); //make sure the text background matches
+    while (joystickbutton <> 1) do begin
+        Joystick(2);
+    end;
+    printstring("          ",0,10);
+    fillfast((screen_col_loc+(11*40)+15),blue,9); //make sure the text background matches
+    //Reset everything to starting values and positions
+    InitVariables();
+    //Move TikTok to starting position
+    spritepos(tx,ty,0);
+    //Move Player to starting position
+    spritepos(px,py,1);
+    //Clear Score
+    moveto(12,0,$04);
+    printdecimal(playerScore,4);
+end;
+
+/*
+    Run through the process of executing the game.
+    Keeping the loop small makes it easy to debug
+*/
+procedure GameLoop();
+begin
+    while (1 <> 0) do begin
+        //Check gameover and pause if Game is over
+	    if gameOver = 1 then GameOver();
+        if count = 0 then begin
+	        //This just slows the game down a bit, it is crazy fast otherwise.
+            //Move Sprites
+	        count := 10;
+	        CheckBounce();
+	    end else count := count - 1;
+	    spritepos(tx,ty,0);
+	    spritepos(px,py,1);
+ 	    
+        //Check Input
+ 	    CheckInput();
+	
+	    //Count down Collision timeout if greater than 0 otherwise check Player to TikTok Collision
+	    if colTimeout > 0 then colTimeout := colTimeout - 1
+	    else CheckCollision();
+	    level := (playerScore / 100);
+    end;
+end;
+
+procedure TitleStart();
+begin
+	//Switch to bank1 and display bitmap title screen
+	setbank(vic_bank1);
+	setmulticolormode();
+	setbitmapmode();
+	copyimagecolordata(#title_color,1);
+    while (keypressed(key_space) <> 1) do begin //Stay until space is pressed
+    end;	
+    setbank(vic_bank0);
+    settextmode();
+    setmulticolormode();
+    
+end;
+
+/*
+   Freeze the game until fire is pressed to start the game
+*/
+procedure GameStart();
+begin
+    moveto(15,11,$04);
+    printstring("PRESS FIRE!",0,11);
+    moveto(15,11,hi(screen_col_loc));
+    fillfast((screen_col_loc+(11*40)+15),blue,10); //make sure the text background matches
+    while (joystickbutton <> 1) do begin
+        Joystick(2);
+    end;
+    moveto(15,11,$04);
+    printstring("           ",0,11);	
+    fillfast((screen_col_loc+(11*40)+15),blue,10); //make sure the text background matches
+end;
+
+// Prints a 2x2 block at position x,y with the upper left value of c, (and c+1, c+2 and c+3)
+// Also prints colors based of the "colors" pointer 
+// Original credit to the TRSE game turotial with minor modifications
+procedure print2x2block(x,y,c:byte);
+begin
+	 moveto(x,y,hi(screen_char_loc));
+	 screenmemory[0] :=tile_data[c];
+	 screenmemory[1] :=tile_data[c+1];
+	 screenmemory[40]:=tile_data[c+2];
+	 screenmemory[41]:=tile_data[c+3];
+     //Colouring, the tile_data will return the char value via c and thus provide the correct item to colour
+	 moveto(x,y,hi(screen_col_loc));
+	 screenmemory[0] :=colors[tile_data[c]];
+	 screenmemory[1] :=colors[tile_data[c+1]];
+	 screenmemory[40]:=colors[tile_data[c+2]];
+	 screenmemory[41]:=colors[tile_data[c+3]];
+end;
+
+//Print a map starting at mapx
+//assuming mapheight = 12
+//assuming screen tiles = 240
+
+procedure printLongMap(mapx,mapl:byte);
+begin
+	 //$FF = 255
+	 //$28 = 40
+	
+	 k:=0;
+	 l:=0;
+	 m:=#map_data+mapx;
+	 for i:=1 to 241 do begin
+		  print2x2block(k,l,@m[0]*4);
+		  k:=k+2;
+		  if k >= 41 then begin
+			   k:=1;
+			   l:=l+2;
+			   m:=m+mapl-20;
+		  end;
+	    m:=m+$1
+	 end	
+end;
+
+procedure DrawLevel();
+begin
+    //Draw map tiles
+    printLongMap(0,21);
+    //Draw the Score area
+    moveto(5,0,$04);
+    printstring("SCORE: ",0,7); 
+    fillfast((screen_col_loc+5),blue,6); //make sure the text background matches
+    //Move TikTok to starting position
+    spritepos(tx,ty,0);
+    //Move Player to starting position
+    spritepos(px,py,1);
+end;
+
+/*
+    Set all game variables to default starting values
+*/
+
+procedure InitVariables();
+begin
+    tx          := 140 + (Random() & 10); //Snowball placement will be slightly varied to that gameplay isnt the same every time
+    ty          := 150;
+    px          := 150;
+    py          := 195;
+    playerScore := 0;
+    speed       := 1;
+    xSpeed      := Random() & 1; //Left or right randomness on first movement
+    ySpeed      := 0;
+    gameOver    := 0;
+    level       := 0;
+    colTimeout  := 0;
+    jitter      := 0;
+    count       := 5;
+    joyTimeout  := 0;
+end;
+
+procedure InitSprites();
+begin
+    //Init Sprites, No MultiColour 1 and Multicolour 2 Sprites turned on, no stretching, Colours
+    sprite_multicolor :=%00000010;
+    sprite_bitmask    :=%00000011;
+    sprite_stretch_x  :=$00;
+    sprite_stretch_y  :=$00;
+    sprite_color[0]   :=white;	
+    sprite_color[1]   :=white;
+    SPRITE_MULTICOLOR_REG1 := red;
+    SPRITE_MULTICOLOR_REG2 := yellow;
+    //Set Sprite pointers to the memory location we included them in increments of 64 bytes
+    setspriteloc(0,@spriteLoc/64, 0);
+    setspriteloc(1,@spriteLoc/64+1, 0);
+end;
+
+procedure InitScreen();
+begin
+    //This function sets up the screen mode, colours and clears the screen
+    screen_fg_col:=black;
+    screen_bg_col:=black;
+    multicolor_char_col[1]:=blue;
+    multicolor_char_col[2]:=green;
+	setmulticolormode();
+	hideborderx(1);
+    ClearScreen(key_space,screen_char_loc);
+    // Fill the upper screen color ram with black
+    ClearScreen(black, SCREEN_COL_LOC);
+end;
+
+begin
+	SetCharsetLocation(charsetLocation); 
+    TitleStart(); //Bitmap title screen on Bank 1
+    InitScreen(); 
+    InitVariables();
+    InitSprites();
+    DrawLevel();
+    GameStart();
+    GameLoop();
+end.
