@@ -47,13 +47,13 @@ begin
 end;
 
 /*
-     * Check Snowball to Wall collision. Fixed positions so easy peasy
-     * interesting issue arose where the math wasn't working like it did in BASIC 7
-     * If I tried to do a negative number with integer it went haywire
-     * If I use byte then obviously I run out of allocation on the X axis
-     * So I hacked this together instead and it seems to work
+      Check Snowball to Wall collision. Fixed positions so easy peasy
+      interesting issue arose where the math wasn't working like it did in BASIC 7
+      If I tried to do a negative number with integer it went haywire
+      If I use byte then obviously I run out of allocation on the X axis
+      So I hacked this together instead and it seems to work
      
-     * The on/off of xSpeed (and y) just indicates whether to add from x/y or minus
+      The on/off of xSpeed (and y) just indicates whether to add from x/y or minus
 */
 procedure CheckBounce();
 begin
