@@ -53,7 +53,7 @@ begin
     /* Assembler Raster bar with timing table and blue palatte 
        This does not turn everything into a border so text elements can be put on it
        Works on starting line 102,110,134,142, 150, 158, 166 etc. Some flicker on the right edge 
-       may occur. I'm very new.
+       may occur. I am very new.
        
        I believe I have fixed the timing to the right it should no longer flicker and works if the Y is every 8 lines
        
