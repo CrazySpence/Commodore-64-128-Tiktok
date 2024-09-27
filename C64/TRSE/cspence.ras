@@ -1,0 +1,206 @@
+program cspence;
+@startblock $3241 "cspence"
+/*
+ New Tro for the Commodore Spence name instead of CrazySpence
+*/
+
+var
+    const useKernal        : byte =  0;
+    const charsetLocation  : address = $2000;
+    charset                : IncBin("cspence/cspence_char-old.bin",charsetLocation);
+    colors                 : Incbin("cspence/cspence_color.bin",$26e1);
+    tile_data              : Incbin("cspence/cspence_tiles.bin",$27be);
+    map_data               : Incbin("cspence/cspence_map.bin",$2998);
+    j,k,l,i,o,p,buf,yw,wobbleShift,time,val: byte;
+    m                      : pointer;
+    letters                : array[7] of integer;
+
+    //break this up into char lines for scrolling in future variant of this TRO where the C= moves around
+    commodoreArray1   : array[] of byte = (0,0);
+    commodoreArray2   : array[] of byte = (0,0);
+    commodoreArray3   : array[] of byte = (0,0);
+    commodoreArray4   : array[] of byte = (0,0);
+    commodoreArray5   : array[] of byte = (0,0);
+    commodoreArray6   : array[] of byte = (0,0);
+    commodoreArray7   : array[] of byte = (0,0); 
+    commodoreArray8   : array[] of byte = (0,0);
+    commodoreArray9   : array[] of byte = (0,0);
+    //I made this in Charpad but the exported asm exceeds 255 chars so it was hard to just read the tile_data directly
+    //I broke each letter up into its own variable using the values from the exported asm file
+    logoE     : array[] of byte = ($12,$13,$14,$15,$16,$17,$18,$19,$1A,$1B,$1C,$1D,$1E,$01,$1F,$20,
+                                   $21,$03,$22,$23,$24,$25,$26,$63,$64,$65,$66,$00,$27,$28,$67,$68,
+                                   $69,$6A,$00,$29,$2A,$2B,$00,$00,$00,$00,$2C,$2D,$2E,$06,$2F,$30,
+                                   $6B,$31,$32,$33,$34,$35,$36,$01,$37,$38,$39,$3A,$3B,$3C,$6C);
+    logoC     : array[] of byte = ($12,$13,$14,$15,$16,$17,$6D, $19,$1A,$1B,$1C,$1D,$1E,$6E, $1F,$20,$21,
+                                   $03,$22,$23,$6F,$25,$26,$70,$00,$00,$00,$00,$27,$28,$71,$00,$00,
+                                   $00,$00,$29,$2A,$2B,$00,$00,$00,$00,$2C,$2D,$2E,$06,$2F,$30,$72,
+                                   $31,$32,$33,$34,$35,$36,$73,$37,$38,$39,$3A,$3B,$3C,$74);
+    logoSpace : array[] of byte = ($00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
+                                   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00);
+    logoS     : array[] of byte = ($46,$47,$48,$09,$0A,$7C,$18, $4A,$4B,$4C,$0B,$1D,$0C,$01, $0D,$0E,$7D,$03,$7E,
+                                   $7F,$24,$80,$05,$81,$3E,$82,$83,$00,$84,$85,$07,$08,$3F,$53,$40,
+                                   $00,$86,$41,$41,$87,$56,$01,$88,$89,$8A,$06,$5A,$5B,$01,$3D,$52,
+                                   $5C,$5D,$5E,$5F,$01,$7A,$7B,$8B,$60,$61,$62,$8C);
+    logo64    : array[] of byte = ($00,$00,$00,$00,
+                                   $00,$00,$00,$8D,$8E,$8F,$90,$91,$92,$93,$94,$95,$96,$97,$98,$99,
+                                   $00,$9A,$9B,$9C,$9D,$9E,$9F,$00,$00,$00,$00,$00,$00,$00,$00,$0F,
+                                   $05,$42,$A0,$A1,$43,$00,$10,$11,$07,$08,$A2,$A3,$00,$A4,$A5,$A6,
+                                   $44,$45,$A7,$A8,$00,$00,$00,$00,$00,$00,$00);
+    logoP     : array[] of byte = ($75,$A9,$AA,$09,$0A,
+                                   $49,$43,$51,$76,$AB,$0B,$AC,$0C,$40,$0D,$0E,$4E,$03,$4F,$50,$01,
+                                   $0F,$05,$42,$3E,$AD,$77,$01,$10,$11,$07,$08,$3F,$AE,$AF,$54,$55,
+                                   $B0,$44,$45,$B1,$00,$57,$58,$59,$00,$00,$00,$00,$3D,$78,$79,$00,
+                                   $00,$00,$00,$B2,$B3,$B4,$00,$00,$00,$00);
+    logoN     : array[] of byte = ($B5,$B6,$B7,$B8,$B9,$BA,
+                                   $BB,$02,$BC,$BD,$BE,$BF,$C0,$01,$02,$C1,$C2,$C3,$C4,$C5,$01,$C6,
+                                   $C7,$C8,$C9,$02,$CA,$01,$02,$CB,$CC,$04,$02,$CD,$01,$02,$CE,$CF,
+                                   $04,$02,$D0,$01,$02,$D1,$D2,$04,$02,$D3,$01,$02,$D4,$D5,$04,$02,
+                                   $D6,$01,$02,$D7,$D8,$D9,$02,$DA,$DB);
+
+    //spritebar
+    @define spriteLoc  $3000
+    sprites                 : incbin("resources/sprites/rastersprite.bin", @spriteLoc);
+    posX                    : integer;
+    yMin,yMax,reverseSprite : byte;
+    sprite_priority         : pointer;
+    sine_wave               : array[256] of byte;
+    //Music
+    sidfile: incsid("resources/sid/Strike_force.sid",2);  
+   
+procedure drawSprite();
+  
+interrupt RasterMain(); 
+begin
+    StartIRQ(useKernal);
+    time := time + 1;
+    yw:=10; //This gets updated to the current rasterline in the loop, just needs to be something
+    wobbleShift:=sine[time*2];
+    call(sidfile_1_play); //Play SID file
+    waitforraster(150);
+    //This makes the bottom wavy
+	  while yw < 230 do begin
+		    yw := peek(RASTERLINE_POS, 0);
+		    val := sine[yw*8 + wobbleShift]/32;
+		    scrollx(val);
+		    waitnoraster(1);
+	  end;
+	  scrollx(0); //Stop the scroll, if you leave it the social text also wobbles which is fine but not what I want
+	  drawSprite(); //Draw 'raster' sprite
+	  closeirq();	
+end;
+
+procedure newprint7x9block(x,y,c:byte);
+begin
+    m := letters[c];
+    for o := 0 to 9 do begin //Y value
+	      p := o * 7; //Char blocks in this Tro are 7x9
+	      moveto(x,y,hi(screen_char_loc));
+	      for i := 0 to 7 do begin
+		        if (x+i) < 40 then begin //the last letter bleeds over by 1 char this just stops it.
+	              buf := m[p]; //not transfering the pointed value to a variable causes weird stuff to happen
+	              screenmemory[i] := buf;
+	          end;
+	          inc(p);
+	      end;
+	      inc(y);
+    end;	
+end;
+
+procedure drawSprite();
+begin
+    posX := 30;
+	  for j:=0 to 8 do begin
+		    spritepos(posX,(sine_wave[time]+50),j);	
+		    posX := posX + 48;
+	  end;
+	  //Go behind or infront depending on Y value
+	  if (sine_wave[time]+48) = yMax then begin 
+        sprite_priority[0] := %11111111;
+		    reverseSprite := 1;
+	  end; 
+	  if (sine_wave[time]+48) = yMin then begin
+	      sprite_priority[0] := %00000000;
+		    reverseSprite := 0;
+	  end;	
+	
+end;
+
+procedure InitSprite();
+begin
+    sprite_multicolor      :=%11111111;
+    sprite_bitmask         :=%11111111;
+    sprite_stretch_x       :=$FF;
+    sprite_stretch_y       :=$00;
+    sprite_multicolor_reg1 :=red;
+    sprite_multicolor_reg2 :=light_red;
+    sprite_priority[0]     := %00000000;
+    for i:=0 to 8 do begin
+		    sprite_color[i]:=light_grey;
+		    setspriteloc(i,@spriteLoc/64+i,0);
+	  end;
+end;
+
+procedure InitMap();
+begin
+    newprint7x9block(12,2,1); //C
+    newprint7x9block(19,2,4); //=
+    newprint7x9block(0,13,3); //S
+    newprint7x9block(7,13,5); //P
+    newprint7x9block(14,13,0);//E
+    newprint7x9block(21,13,6);//N
+    newprint7x9block(28,13,1);//C
+    newprint7x9block(35,13,0);//E
+end;
+
+procedure InitScreen();
+begin
+    //Set Colours
+    screen_fg_col:=black;
+    screen_bg_col:=black;
+	  setmulticolormode();
+	  HideBorderx(0);
+	  //char 0 is a blank square in this set
+	  clearscreen(0, screen_char_loc);
+	  clearscreen(colors[tile_data[1]], screen_col_loc); // all characters use the same colours so we can cheat and just set colour once everywhere
+    multicolor_char_col[1]:=purple;
+    multicolor_char_col[2]:=blue;       
+end;   
+
+procedure InitArray();
+begin
+    letters[0] := #logoE;
+    letters[1] := #logoC;
+    letters[2] := #logoSpace;
+    letters[3] := #logoS;
+    letters[4] := #logo64;
+    letters[5] := #logoP;
+    letters[6] := #logoN;	
+end;
+
+begin
+    InitArray();
+    InitScreen();
+  	SetCharsetLocation(charsetLocation); 
+    InitMap();
+    InitSprite();
+    reverseSprite   := 0;
+    sprite_priority := $d01b;
+    yMin            := 48;
+    yMax            := 133;
+    //generate SINE wave
+    for i:=0 to 256 do begin
+        sine_wave[i]:=sine[i]/3;	
+    end;
+    InitSid(sidfile_1_init); //Init SID music
+	  //Set up interrupt
+ 	  preventirq();
+ 	  disableciainterrupts();
+   	SetMemoryConfig(1,@useKernal,0);
+ 	  RasterIRQ(RasterMain(),10,useKernal);
+ 	  EnableRasterIRQ();
+ 	  enableirq();
+   	Loop();
+end.
+@endblock
