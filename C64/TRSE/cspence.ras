@@ -80,51 +80,50 @@ begin
     call(sidfile_1_play); //Play SID file
     waitforraster(150);
     //This makes the bottom wavy
-	  while yw < 230 do begin
-		    yw := peek(RASTERLINE_POS, 0);
-		    val := sine[yw*8 + wobbleShift]/32;
-		    scrollx(val);
-		    waitnoraster(1);
-	  end;
-	  scrollx(0); //Stop the scroll, if you leave it the social text also wobbles which is fine but not what I want
-	  drawSprite(); //Draw 'raster' sprite
-	  closeirq();	
+    while yw < 230 do begin
+        yw := peek(RASTERLINE_POS, 0);
+	val := sine[yw*8 + wobbleShift]/32;
+	scrollx(val);
+	waitnoraster(1);
+    end;
+    scrollx(0); //Stop the scroll, if you leave it the social text also wobbles which is fine but not what I want
+    drawSprite(); //Draw 'raster' sprite
+    closeirq();	
 end;
 
 procedure newprint7x9block(x,y,c:byte);
 begin
     m := letters[c];
     for o := 0 to 9 do begin //Y value
-	      p := o * 7; //Char blocks in this Tro are 7x9
-	      moveto(x,y,hi(screen_char_loc));
-	      for i := 0 to 7 do begin
-		        if (x+i) < 40 then begin //the last letter bleeds over by 1 char this just stops it.
-	              buf := m[p]; //not transfering the pointed value to a variable causes weird stuff to happen
-	              screenmemory[i] := buf;
-	          end;
-	          inc(p);
-	      end;
-	      inc(y);
+        p := o * 7; //Char blocks in this Tro are 7x9
+        moveto(x,y,hi(screen_char_loc));
+        for i := 0 to 7 do begin
+            if (x+i) < 40 then begin //the last letter bleeds over by 1 char this just stops it.
+                buf := m[p]; //not transfering the pointed value to a variable causes weird stuff to happen
+                screenmemory[i] := buf;
+            end;
+            inc(p);
+        end;
+        inc(y);
     end;	
 end;
 
 procedure drawSprite();
 begin
     posX := 30;
-	  for j:=0 to 8 do begin
-		    spritepos(posX,(sine_wave[time]+50),j);	
-		    posX := posX + 48;
-	  end;
-	  //Go behind or infront depending on Y value
-	  if (sine_wave[time]+48) = yMax then begin 
+    for j:=0 to 8 do begin
+        spritepos(posX,(sine_wave[time]+50),j);	
+        posX := posX + 48;
+    end;
+    //Go behind or infront depending on Y value
+    if (sine_wave[time]+48) = yMax then begin 
         sprite_priority[0] := %11111111;
-		    reverseSprite := 1;
-	  end; 
-	  if (sine_wave[time]+48) = yMin then begin
-	      sprite_priority[0] := %00000000;
-		    reverseSprite := 0;
-	  end;	
-	
+        reverseSprite := 1;
+    end; 
+    if (sine_wave[time]+48) = yMin then begin
+        sprite_priority[0] := %00000000;
+        reverseSprite := 0;
+    end;	
 end;
 
 procedure InitSprite();
@@ -137,9 +136,9 @@ begin
     sprite_multicolor_reg2 :=light_red;
     sprite_priority[0]     := %00000000;
     for i:=0 to 8 do begin
-		    sprite_color[i]:=light_grey;
-		    setspriteloc(i,@spriteLoc/64+i,0);
-	  end;
+        sprite_color[i]:=light_grey;
+	setspriteloc(i,@spriteLoc/64+i,0);
+    end;
 end;
 
 procedure InitMap();
@@ -159,11 +158,11 @@ begin
     //Set Colours
     screen_fg_col:=black;
     screen_bg_col:=black;
-	  setmulticolormode();
-	  HideBorderx(0);
-	  //char 0 is a blank square in this set
-	  clearscreen(0, screen_char_loc);
-	  clearscreen(colors[tile_data[1]], screen_col_loc); // all characters use the same colours so we can cheat and just set colour once everywhere
+    setmulticolormode();
+    HideBorderx(0);
+    //char 0 is a blank square in this set
+    clearscreen(0, screen_char_loc);
+    clearscreen(colors[tile_data[1]], screen_col_loc); // all characters use the same colours so we can cheat and just set colour once everywhere
     multicolor_char_col[1]:=purple;
     multicolor_char_col[2]:=blue;       
 end;   
@@ -182,7 +181,7 @@ end;
 begin
     InitArray();
     InitScreen();
-  	SetCharsetLocation(charsetLocation); 
+    SetCharsetLocation(charsetLocation); 
     InitMap();
     InitSprite();
     reverseSprite   := 0;
@@ -194,13 +193,13 @@ begin
         sine_wave[i]:=sine[i]/3;	
     end;
     InitSid(sidfile_1_init); //Init SID music
-	  //Set up interrupt
- 	  preventirq();
- 	  disableciainterrupts();
-   	SetMemoryConfig(1,@useKernal,0);
- 	  RasterIRQ(RasterMain(),10,useKernal);
- 	  EnableRasterIRQ();
- 	  enableirq();
-   	Loop();
+    //Set up interrupt
+    preventirq();
+    disableciainterrupts();
+    SetMemoryConfig(1,@useKernal,0);
+    RasterIRQ(RasterMain(),10,useKernal);
+    EnableRasterIRQ();
+    enableirq();
+    Loop();
 end.
 @endblock
